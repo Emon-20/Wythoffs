@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wythoff's Game • The Golden Ratio Nim</title>
+    <meta name="description" content="Play Wythoff's Game with Computer or Friends. Master the golden ratio Beatty sequences across 5 progressive levels, multi-pile mechanics, and timed blitz modes.">
+    <!-- Google Fonts: Outfit & Inter for high-end game typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/game-ui.css">
+</head>
+<body class="theme-dark">
+    <!-- Ambient glowing backgrounds -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="app-wrapper">
+        <!-- HEADER -->
+        <header class="game-header">
+            <div class="header-brand">
+                <div class="brand-logo">
+                    <span class="phi-symbol">φ</span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="game-title">WYTHOFF'S</h1>
+                    <span class="game-subtitle">The Golden Ratio Nim • φ ≈ 1.6180339</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button id="btn-sound-toggle" class="icon-btn" title="Toggle Sound" aria-label="Toggle Sound">
+                    <span class="icon-sound">🔊</span>
+                </button>
+                <button id="btn-stats" class="glass-pill-btn" title="View Game Stats">
+                    <span class="btn-icon">🏆</span>
+                    <span class="btn-label">Stats</span>
+                </button>
+                <button id="btn-how-to-play" class="glass-pill-btn highlight" title="Rules & Math Secrets">
+                    <span class="btn-icon">💡</span>
+                    <span class="btn-label">Rules & Math</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- TOP BAR: MODE SELECTOR & COMPUTER DIFFICULTY -->
+        <nav class="mode-navigation-bar">
+            <!-- Mode Switcher -->
+            <div class="mode-tabs" role="tablist">
+                <button id="tab-pvc" class="mode-tab active" role="tab" aria-selected="true">
+                    <span class="tab-icon">🤖</span>
+                    <span class="tab-title">Play with Computer</span>
+                </button>
+                <button id="tab-pvp" class="mode-tab" role="tab" aria-selected="false">
+                    <span class="tab-icon">👥</span>
+                    <span class="tab-title">Play with Friend</span>
+                </button>
+            </div>
+
+            <!-- AI Difficulty Controls (Only visible in PvC mode) -->
+            <div id="ai-difficulty-container" class="difficulty-selector">
+                <span class="selector-label">AI Difficulty:</span>
+                <div class="difficulty-btn-group">
+                    <button class="diff-btn" data-difficulty="easy">Easy</button>
+                    <button class="diff-btn active" data-difficulty="medium">Medium</button>
+                    <button class="diff-btn gold-glow" data-difficulty="hard" title="Unbeatable Beatty sequence engine">
+                        <span>Hard (Oracle)</span>
+                        <span class="star-badge">★</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 5-LEVEL PROGRESSION SELECTOR -->
+        <section class="level-selection-section">
+            <div class="level-carousel" id="level-carousel">
+                <!-- Dynamically rendered 5 levels -->
+            </div>
+            <!-- Current Level Quick Info Banner -->
+            <div class="level-info-banner" id="level-info-banner">
+                <div class="info-tag-group">
+                    <span class="info-tag badge-rules" id="level-rule-badge">Classic 2-Pile</span>
+                    <span class="info-tag badge-cap" id="level-cap-badge" style="display: none;">Cap: 5 Tokens</span>
+                    <span class="info-tag badge-timer" id="level-timer-badge" style="display: none;">⏱ 15s Timer</span>
+                </div>
+                <p class="level-description-text" id="level-description-text">
+                    Take any number from one pile, or the same number from both piles. The player who takes the last token wins!
+                </p>
+            </div>
+        </section>
+
+        <!-- MAIN GAME ARENA -->
+        <main class="game-arena-container">
+            <!-- HUD: MATCH STATUS & SCORES -->
+            <div class="game-hud">
+                <!-- Player 1 Card -->
+                <div class="player-card active" id="player1-card">
+                    <div class="player-avatar p1-avatar">
+                        <span id="p1-avatar-icon">👤</span>
+                        <div class="turn-ping-ring"></div>
+                    </div>
+                    <div class="player-details">
+                        <span class="player-name" id="p1-name">You</span>
+                        <span class="player-role" id="p1-role">Player 1</span>
+                    </div>
+                    <div class="player-score-badge" id="p1-score">0 Wins</div>
+                </div>
+
+                <!-- Center Turn & Timer Status -->
+                <div class="match-center-hud">
+                    <div class="turn-announcement" id="turn-announcement">
+                        <span class="turn-dot"></span>
+                        <span class="turn-text" id="turn-text">Your Turn</span>
+                    </div>
+
+                    <!-- Turn Timer (For Timed Levels) -->
+                    <div class="turn-timer-wrapper" id="turn-timer-wrapper" style="display: none;">
+                        <div class="timer-bar-track">
+                            <div class="timer-bar-fill" id="timer-bar-fill"></div>
+                        </div>
+                        <span class="timer-countdown-text" id="timer-countdown-text">15s</span>
+                    </div>
+
+                    <!-- Strategic Cold Radar Pill -->
+                    <div class="strategic-radar-pill" id="strategic-radar-pill" title="Beatty cold position radar">
+                        <span class="radar-dot"></span>
+                        <span class="radar-label" id="radar-label">Analyzing...</span>
+                    </div>
+                </div>
+
+                <!-- Player 2 / Computer Card -->
+                <div class="player-card" id="player2-card">
+                    <div class="player-avatar p2-avatar">
+                        <span id="p2-avatar-icon">🤖</span>
+                        <div class="turn-ping-ring"></div>
+                    </div>
+                    <div class="player-details">
+                        <span class="player-name" id="p2-name">Computer (Med)</span>
+                        <span class="player-role" id="p2-role">Opponent</span>
+                    </div>
+                    <div class="player-score-badge" id="p2-score">0 Wins</div>
+                </div>
+            </div>
+
+            <!-- ACTIVE PILES ARENA -->
+            <div class="piles-board" id="piles-board">
+                <!-- Pile cards will be rendered dynamically -->
+            </div>
+
+            <!-- ACTION TRAY -->
+            <div class="action-tray">
+                <div class="selection-summary-card">
+                    <div class="selection-icon">🎯</div>
+                    <div class="selection-info">
+                        <span class="selection-title">Planned Move:</span>
+                        <span class="selection-detail" id="selection-detail">Select a pile or tokens below</span>
+                    </div>
+                </div>
+
+                <div class="action-buttons-group">
+                    <button id="btn-clear-selection" class="btn-secondary" title="Clear currently selected tokens">
+                        Reset Selection
+                    </button>
+                    <button id="btn-equal-all" class="btn-secondary" title="Select same amount from all eligible piles">
+                        Sync Selected Piles
+                    </button>
+                    <button id="btn-confirm-move" class="btn-primary" disabled>
+                        <span class="btn-text">Confirm Move</span>
+                        <span class="btn-glow-accent"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MOVE LOG FEED -->
+            <section class="move-history-section">
+                <div class="history-header">
+                    <span class="history-title">📜 Move History</span>
+                    <button id="btn-new-round" class="link-btn">Restart Match</button>
+                </div>
+                <div class="history-stream" id="history-stream">
+                    <div class="history-empty">Game started. Make your first move!</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- VICTORY / DEFEAT MODAL OVERLAY -->
+    <div class="modal-overlay" id="modal-gameover" style="display: none;">
+        <div class="modal-card victory-card" id="gameover-card">
+            <div class="modal-badge" id="gameover-badge">CHAMPION</div>
+            <div class="victory-emoji" id="gameover-emoji">👑</div>
+            <h2 class="victory-title" id="gameover-title">VICTORY!</h2>
+            <p class="victory-subtitle" id="gameover-subtitle">You took the final token and conquered the Golden Ratio!</p>
+
+            <div class="gameover-stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Total Turns</span>
+                    <span class="stat-val" id="gameover-turns">12</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Winning Move</span>
+                    <span class="stat-val" id="gameover-move">Took 2 tokens</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Current Streak</span>
+                    <span class="stat-val" id="gameover-streak">🔥 3</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-rematch" class="btn-secondary">Play Again</button>
+                <button id="btn-next-level" class="btn-primary">
+                    <span>Next Level ➔</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RULES & MATH SECRETS MODAL -->
+    <div class="modal-overlay" id="modal-rules" style="display: none;">
+        <div class="modal-card rules-card">
+            <div class="rules-modal-header">
+                <div class="title-with-icon">
+                    <span class="phi-gold">φ</span>
+                    <h2>Wythoff's Game & The Golden Ratio Secrets</h2>
+                </div>
+                <button id="btn-close-rules" class="icon-close" aria-label="Close modal">&times;</button>
+            </div>
+
+            <div class="rules-modal-body">
+                <div class="rules-section">
+                    <h3>🎯 The Core Rules</h3>
+                    <p>
+                        There are two piles of tokens. On each turn, a player may:
+                    </p>
+                    <ul class="rules-bullet-list">
+                        <li><strong>Rule 1:</strong> Remove any positive number of tokens from <em>one</em> pile.</li>
+                        <li><strong>Rule 2:</strong> Remove the <em>exact same number</em> of tokens from <em>both</em> piles.</li>
+                        <li><strong>Victory:</strong> The player who takes the last token(s) (leaving (0,0)) <strong>wins the game</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="rules-section math-spotlight">
+                    <h3>✨ The Golden Ratio (φ) Cold Positions</h3>
+                    <p>
+                        In combinatorial game theory, a <strong>Cold Position (P-position)</strong> is one where whoever's turn it is cannot win against optimal play.
+                        In 1907, Dutch mathematician <strong>Willem Abraham Wythoff</strong> proved that all losing positions are given by the <strong>Beatty Sequence</strong>:
+                    </p>
+                    <div class="formula-box">
+                        <span class="formula-line">(a<sub>n</sub>, b<sub>n</sub>) = ( ⌊n · φ⌋, ⌊n · φ²⌋ )</span>
+                        <span class="formula-sub">where φ = (1 + √5) / 2 ≈ 1.6180339887... and b<sub>n</sub> = a<sub>n</sub> + n</span>
+                    </div>
+
+                    <div class="cold-pairs-table-wrapper">
+                        <table class="cold-table">
+                            <thead>
+                                <tr>
+                                    <th>n</th>
+                                    <th>a<sub>n</sub> = ⌊nφ⌋</th>
+                                    <th>b<sub>n</sub> = a<sub>n</sub> + n</th>
+                                    <th>Cold Pair (x, y)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>0</td><td>0</td><td>0</td><td><strong>(0, 0)</strong> — Final Target</td></tr>
+                                <tr><td>1</td><td>1</td><td>2</td><td><strong>(1, 2)</strong></td></tr>
+                                <tr><td>2</td><td>3</td><td>5</td><td><strong>(3, 5)</strong></td></tr>
+                                <tr><td>3</td><td>4</td><td>7</td><td><strong>(4, 7)</strong></td></tr>
+                                <tr><td>4</td><td>6</td><td>10</td><td><strong>(6, 10)</strong></td></tr>
+                                <tr><td>5</td><td>8</td><td>13</td><td><strong>(8, 13)</strong></td></tr>
+                                <tr><td>6</td><td>9</td><td>15</td><td><strong>(9, 15)</strong></td></tr>
+                                <tr><td>7</td><td>11</td><td>18</td><td><strong>(11, 18)</strong></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="math-note">
+                        💡 <strong>Winning Strategy:</strong> Always move to one of these cold pairs! Your opponent will be forced to move out of it, and on your next turn you can always jump back into a lower cold pair until you seize (0,0)!
+                    </p>
+                </div>
+
+                <div class="rules-section">
+                    <h3>♛ The Chess Queen Connection</h3>
+                    <p>
+                        Wythoff's game is mathematically identical to a <strong>Chess Queen</strong> on an infinite quadrant grid!
+                        Moving South removes from Pile 2, moving West removes from Pile 1, and moving Southwest diagonal removes equal tokens from both! The goal is to move the Queen to square <strong>(0, 0)</strong>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rules-modal-footer">
+                <button id="btn-understood" class="btn-primary">Got it, Let's Play!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS & RECORDS MODAL -->
+    <div class="modal-overlay" id="modal-stats" style="display: none;">
+        <div class="modal-card stats-modal-card">
+            <div class="rules-modal-header">
+                <h2>🏆 Game Records & Statistics</h2>
+                <button id="btn-close-stats" class="icon-close" aria-label="Close modal">&times;</button>
+            </div>
+
+            <div class="stats-modal-body">
+                <div class="stats-category">
+                    <h3>🤖 Play vs Computer Records</h3>
+                    <div class="stats-row">
+                        <div class="stat-chip">
+                            <span class="chip-label">Easy</span>
+                            <span class="chip-val" id="stat-easy">0W - 0L</span>
+                        </div>
+                        <div class="stat-chip">
+                            <span class="chip-label">Medium</span>
+                            <span class="chip-val" id="stat-medium">0W - 0L</span>
+                        </div>
+                        <div class="stat-chip highlight-gold">
+                            <span class="chip-label">Hard (Oracle)</span>
+                            <span class="chip-val" id="stat-hard">0W - 0L</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-category">
+                    <h3>👥 Play with Friend Head-to-Head</h3>
+                    <div class="stats-row">
+                        <div class="stat-chip">
+                            <span class="chip-label">Player 1</span>
+                            <span class="chip-val" id="stat-p1">0 Wins</span>
+                        </div>
+                        <div class="stat-chip">
+                            <span class="chip-label">Player 2</span>
+                            <span class="chip-val" id="stat-p2">0 Wins</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-category">
+                    <h3>⭐ Level Progress</h3>
+                    <div class="level-stars-grid" id="level-stars-grid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="rules-modal-footer">
+                <button id="btn-reset-stats" class="btn-secondary danger">Reset All Stats</button>
+                <button id="btn-close-stats-btn" class="btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application scripts in dependency order -->
+    <script src="js/engine.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
